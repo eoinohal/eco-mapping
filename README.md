@@ -1,6 +1,12 @@
 
-# ECO MAP
+# eco-mapping
 
+## Description
+Hack-Earth submission
+
+eco-mapping is a gamified web platform to crowdsources human reviewed satellite data for collecting geospatial datasets for environmental monitoring missions. 
+
+**Note:** No security setup so far
 
 ---
 
@@ -14,28 +20,10 @@ cd eco-map/eco-map
 ```
 
 
-### 2. Set up the Database
-### USE DOCKER INSTEAD?
-- Install **PostgreSQL** and **PostGIS**
-```sh
-brew install postgresql
-brew install postgis
-```
-
-- Create a database and enable the PostGIS extension:
-  ```sql
-  psql postgres
-  CREATE DATABASE ecomap;
-  \c ecomap
-  CREATE EXTENSION postgis;
-  ```
-
-- (Add dump file instructions here)
-
-
-### 3. Set up Environment Variables
+### 2. Set up Environment Variables
 
 ```sh
+# From the root project folder
 cd backend
 cp .env.example .env
 # Open .env in your editor and set secrets
@@ -45,21 +33,20 @@ cp .env.example .env
 
 
 
-### 4. Run Backend
+### 3. Start the Application (Docker)
 
 ```sh
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload
+# From the root project folder
+docker compose up --build
 ```
 Backend hosted on http://127.0.0.1:8000
+API Documentation: http://localhost:8000/docs
 
 
 ### 5. Run Frontend 
 
 ```sh
+# From the root project folder
 cd frontend
 npm install
 npm run dev
@@ -73,19 +60,21 @@ Frotend hosted on http://localhost:5173
 
 ```
 eco-map/
+├── docker-compose.yml       
 ├── backend/
-│   ├── main.py              # FastAPI backend entrypoint
-│   └── requirements.txt     # Python dependencies
-│   └── .env.example         # env variables
+│   ├── Dockerfile         
+│   ├── main.py              # Backend Entrypoint
+│   ├── database.py          
+│   ├── models.py            # Database Models
+│   ├── schemas.py           # Pydantic Validation Models
+│   ├── requirements.txt     
+│   └── .env                 # API Keys and Database URL
 ├── frontend/
-│   ├── App.tsx             # Main React app component
-│   ├── main.tsx            # React entrypoint
-│   ├── index.html          # HTML template
-│   ├── index.css           # Tailwind
-│   ├── package.json        # Frontend dependencies & scripts
-│   └── tailwind.config.js  # Tailwind config
-├── readMe.md               # Project documentation
-└── .gitignore              # Git ignore
+│   ├── App.tsx              # React app
+│   ├── main.tsx             # React entrypoint
+│   ├── package.json         
+│   └── ...
+└── README.md               
 ```
 
 

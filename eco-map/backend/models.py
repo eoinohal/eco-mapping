@@ -1,58 +1,56 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Float
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Float
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from geoalchemy2 import Geometry
-
-Base = declarative_base()
+from database import Base
 
 class User(Base):
+    """
+    Basic user model
+    """
     __tablename__ = "users"
-
+    # User details
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    role = Column(String, default="user")  # 'admin' | 'user'
-    total_points = Column(Integer, default=0)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Score by project
+    score = Column(Integer, default=0)
+    # Marks by project
+    annotations = relationship("Annotation", back_populates="user")
 
-    # Relationships
-    drawings = relationship("UserDrawing", back_populates="user")
 
 class Project(Base):
+    """
+    Project model, individual mapping project.
+    """
     __tablename__ = "projects"
-
+    # Project details
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    description = Column(Text)
-    # Bounding box of the mission area 
-    bounding_box = Column(Geometry(geometry_type='POLYGON', srid=4326))
-    status = Column(String, default="active") # 'active' | 'archived'
+    name = Column(String, index=True)
+    description = Column(String)
+    # NASA API Metadata - map data here
+    nasa_layer_id = Column(String) 
+    date_target = Column(DateTime) 
+    boundary_geom = Column(Geometry('POLYGON', srid=4326))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Annonations related to this project - cascade delete ON 
+    annotations = relationship("Annotation", back_populates="project", cascade="all, delete-orphan")
 
-    # Relationships
-    segments = relationship("MapSegment", back_populates="project")
 
-class MapSegment(Base):
-    __tablename__ = "map_segments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    # Individual tile geometry
-    geom = Column(Geometry(geometry_type='POLYGON', srid=4326))
-    completed = Column(Boolean, default=False)
-    locked_by_user = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    # Relationships
-    project = relationship("Project", back_populates="segments")
-    drawings = relationship("UserDrawing", back_populates="segment")
-
-class UserDrawing(Base):
-    __tablename__ = "user_drawings"
-
+class Annotation(Base):
+    """
+    The raw data points/shapes drawn by users.
+    """
+    __tablename__ = "annotations"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    segment_id = Column(Integer, ForeignKey("map_segments.id"))
-    # User-submitted spatial features 
-    geom = Column(Geometry(geometry_type='GEOMETRY', srid=4326))
-    score = Column(Float, default=0.0)
-
-    # Relationships
-    user = relationship("User", back_populates="drawings")
-    segment = relationship("MapSegment", back_populates="drawings")
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    # points, lines, polygons 
+    geom = Column(Geometry('GEOMETRY', srid=4326))
+    # To handle 'modes'
+    label_type = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User", back_populates="annotations")
+    project = relationship("Project", back_populates="annotations")

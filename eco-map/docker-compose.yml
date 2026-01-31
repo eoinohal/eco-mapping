@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=ecomap_user
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=ecomap_db
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app 
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://ecomap_user:secure_password@db:5432/ecomap_db
+
+volumes:
+  postgres_data:
