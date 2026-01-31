@@ -1,0 +1,8 @@
+# Backend requirements for ECO MAP
+fastapi
+uvicorn
+sqlalchemy
+geoalchemy2
+psycopg2-binary
+python-dotenv
+pydantic

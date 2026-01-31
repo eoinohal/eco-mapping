@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+.env
+.env.*
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Misc
+*.sqlite3
+*.db
+*.bak
+*.swp
+*.swo
+
+# Ignore example env
+!**/.env.example

@@ -1,0 +1,24 @@
+{
+  "name": "eco-map-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "maplibre-gl": "^3.6.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "typescript": "^5.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "tailwindcss": "^3.0.0",
+    "postcss": "^8.0.0",
+    "autoprefixer": "^10.0.0"
+  }
+}
