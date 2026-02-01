@@ -314,7 +314,7 @@ def generate_grid(
 
 
 #-----------------------------------------------------------------
-# TASKS ENDPOINTS
+# GET TASKS ENDPOINTS
 # ----------------------------------------------------------------
 
 @app.get("/projects/{project_id}/next-task", response_model=schemas.SubdivisionResponse)
@@ -342,3 +342,44 @@ def get_next_task(
         subdivision.geometry = mapping(to_shape(subdivision.geom))
         
     return subdivision
+
+# ----------------------------------------------------------------
+# BATCH TASKS ENDPOINTS
+# ----------------------------------------------------------------
+
+@app.post("/projects/{project_id}/tasks/batch")
+def create_batch_tasks(
+    project_id: int, 
+    batch: schemas.TaskList, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin) 
+):
+    """
+    REVIEW Mode: Upload a specific list of geometries instead of generating a grid.
+    """
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    created_count = 0
+    
+    # Loop through the list and save each as a subdivision
+    for task in batch.tasks:
+        try:
+            # Convert string input to WKT for PostGIS
+            poly_wkt = WKTElement(task.geom, srid=4326)
+            
+            new_subdivision = models.Subdivision(
+                project_id=project_id,
+                geom=poly_wkt,
+                completion_count=0
+            )
+            db.add(new_subdivision)
+            created_count += 1
+        except Exception as e:
+            print(f"Skipping bad geometry: {e}")
+            continue
+
+    db.commit()
+    
+    return {"status": "success", "tasks_created": created_count}

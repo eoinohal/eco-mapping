@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Any, Dict 
+from typing import Optional, Any, Dict, List
 
 # ======== Token Schemas =======
 class Token(BaseModel):
@@ -14,7 +14,7 @@ class TokenData(BaseModel):
 # ======== User Schemas =======
 class UserCreate(BaseModel):
     username: str
-    password: str # hash not used!!!
+    password: str
 
 class UserResponse(BaseModel):
     id: int
@@ -79,3 +79,10 @@ class AnnotationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ======= Task Schemas =======
+class TaskItem(BaseModel):
+    geom: str  
+
+class TaskList(BaseModel):
+    tasks: List[TaskItem]

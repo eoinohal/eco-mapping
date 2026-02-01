@@ -9,15 +9,12 @@ class User(Base):
     Basic user model
     """
     __tablename__ = "users"
-    # User details
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    # Score by project
     score = Column(Integer, default=0)
-    # Marks by project
     annotations = relationship("Annotation", back_populates="user")
 
 
@@ -57,11 +54,11 @@ class Annotation(Base):
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    subdivision_id = Column(Integer, ForeignKey("subdivisions.id")) # <--- NEW FIELD
+    subdivision_id = Column(Integer, ForeignKey("subdivisions.id"))
     label_type = Column(String)
     quality_score = Column(Integer, default=0)
     geom = Column(Geometry('POINT', srid=4326))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     project = relationship("Project", back_populates="annotations")
     user = relationship("User", back_populates="annotations")
-    subdivision = relationship("Subdivision", back_populates="annotations") # <--- NEW RELATIONSHIP", back_populates="annotations")
+    subdivision = relationship("Subdivision", back_populates="annotations") 
