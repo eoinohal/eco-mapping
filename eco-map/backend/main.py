@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text, and_
 from geoalchemy2.elements import WKTElement
@@ -17,6 +18,19 @@ import security
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EcoMap Backend")
+
+origins = [
+    "http://localhost:5173", 
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"], 
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -109,13 +123,18 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     new_user = models.User(
         username=user.username, 
         hashed_password=hashed_pwd, 
-        is_admin=True 
+        is_admin=user.is_admin
     )
     
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+@app.get("/users/me", response_model=schemas.UserResponse)
+def read_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
 
 # ----------------------------------------------------------------
 # PROJECT ENDPOINTS
@@ -161,43 +180,58 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     
     return project
 
+@app.get("/users/me/projects", response_model=List[schemas.ProjectContributionResponse])
+def read_my_projects(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Join Projects and Annotations, filter by user_id, group by Project
+    results = db.query(
+        models.Project, 
+        func.count(models.Annotation.id).label('count')
+    ).join(models.Annotation)\
+     .filter(models.Annotation.user_id == current_user.id)\
+     .group_by(models.Project.id)\
+     .all()
+
+    response = []
+    for project, count in results:
+        proj_data = schemas.ProjectContributionResponse(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            nasa_layer_id=project.nasa_layer_id,
+            created_at=project.created_at,
+            is_active=project.is_active,
+            user_contribution_count=count
+        )
+        response.append(proj_data)
+        
+    return response
+
 # ----------------------------------------------------------------
 # ASIGNER ENDPOINTS
 # ----------------------------------------------------------------
-@app.get("/projects/{project_id}/next-task", response_model=schemas.SubdivisionResponse)
-def get_next_task(
-    project_id: int, 
+@app.patch("/projects/{project_id}", response_model=schemas.ProjectResponse)
+def update_project_status(
+    project_id: int,
+    status_update: schemas.ProjectUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_admin) 
 ):
     """
-    Returns subdivision that:
-    1. Belongs to the project
-    2. Has not reached the required annotation count
-    3. Has NOT been annotated by the current user yet
+    Update project status (e.g., close a project by setting is_active=False).
     """
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    project.is_active = status_update.is_active
+    db.commit()
+    db.refresh(project)
+    
+    # Handle Geometry serialization for response
+    if project.boundary_geom is not None:
+        project.geometry = mapping(to_shape(project.boundary_geom))
 
-    # Find all subdivision IDs this user has already worked on
-    subquery = db.query(models.Annotation.subdivision_id)\
-        .filter(models.Annotation.user_id == current_user.id, models.Annotation.project_id == project_id, models.Annotation.subdivision_id.isnot(None))
-
-    # Find subdivision that is NOT in that list
-    task = db.query(models.Subdivision).filter(
-        models.Subdivision.project_id == project_id,
-        models.Subdivision.completion_count < project.required_annotations,
-        ~models.Subdivision.id.in_(subquery)
-    ).first()
-
-    if not task:
-        raise HTTPException(status_code=404, detail="No tasks available! You might have finished them all.")
-
-    if task.geom is not None:
-        task.geometry = mapping(to_shape(task.geom))
-        
-    return task
+    return project
 
 # ----------------------------------------------------------------
 # ANNOTATION ENDPOINTS
@@ -312,36 +346,6 @@ def generate_grid(
 
     return response_data
 
-
-#-----------------------------------------------------------------
-# GET TASKS ENDPOINTS
-# ----------------------------------------------------------------
-
-@app.get("/projects/{project_id}/next-task", response_model=schemas.SubdivisionResponse)
-def get_next_task(
-    project_id: int, 
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    """
-    Finds a subdivision that needs work and assigns it to the user.
-    """
-    project = db.query(models.Project).filter(models.Project.id == project_id, models.Project.is_active == True).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found or inactive")
-    
-    subdivision = db.query(models.Subdivision).filter(
-        models.Subdivision.project_id == project_id,
-        models.Subdivision.completion_count < project.required_annotations
-    ).first()
-
-    if not subdivision:
-        raise HTTPException(status_code=404, detail="No tasks available! This project might be complete.")
-
-    if subdivision.geom is not None:
-        subdivision.geometry = mapping(to_shape(subdivision.geom))
-        
-    return subdivision
 
 # ----------------------------------------------------------------
 # BATCH TASKS ENDPOINTS

@@ -15,6 +15,7 @@ class TokenData(BaseModel):
 class UserCreate(BaseModel):
     username: str
     password: str
+    is_admin: bool = False
 
 class UserResponse(BaseModel):
     id: int
@@ -35,13 +36,20 @@ class ProjectCreate(ProjectBase):
     boundary_geom: str 
     date_target: datetime
 
+class ProjectUpdate(BaseModel):
+    is_active: bool
+
 class ProjectResponse(ProjectBase):
     id: int
     created_at: datetime
+    is_active: bool 
     geometry: Optional[Dict[str, Any]] = None 
 
     class Config:
         from_attributes = True
+
+class ProjectContributionResponse(ProjectResponse):
+    user_contribution_count: int
 
 
 # ======= Subdivision Schemas =======

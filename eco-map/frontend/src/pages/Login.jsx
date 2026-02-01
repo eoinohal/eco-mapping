@@ -1,0 +1,82 @@
+import React, { useState, useRef } from 'react';
+import { Navbar } from '../components/layout/Navbar';
+import { Footer } from '../components/layout/Footer';
+import { AuthForm } from '../components/auth/AuthForm';
+import { ReviewerSection } from '../components/sections/ReviewerSection';
+import { MissionMakerSection } from '../components/sections/MissionMakerSection';
+
+const Login = () => {
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const topSectionRef = useRef(null);
+  const handleScrollToSignUp = () => {
+    setIsRegisterMode(true);
+    topSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <div className="min-h-screen bg-white text-slate-950 font-sans selection:bg-slate-200">
+      
+      <Navbar />
+
+      <main className="container mx-auto max-w-5xl px-6 py-12 space-y-24">
+        
+        {/* HERO & AUTH SECTION */}
+        <section 
+          ref={topSectionRef} 
+          className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center scroll-mt-24"
+        >
+          {/* Visual - Left */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 aspect-[2/1] relative group">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-90 grayscale group-hover:grayscale-0 transition-all duration-700"></div>
+            
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-mono border border-slate-200">
+              Data source: Sentinel-2 • Region: Amazonia 42B
+            </div>
+          </div>
+
+          {/* Auth Form - Right */}
+          <AuthForm 
+            isRegisterMode={isRegisterMode} 
+            toggleMode={() => setIsRegisterMode(!isRegisterMode)} 
+          />
+        </section>
+
+
+        {/* FEATURE SECTIONS */}
+        <ReviewerSection onSignUpClick={handleScrollToSignUp} />
+        
+        <MissionMakerSection onSignUpClick={handleScrollToSignUp} />
+
+
+        {/* INFO GRID */}
+        <div className="grid md:grid-cols-3 gap-8 py-12 border-t border-slate-100">
+          <div className="space-y-2">
+            <h3 className="font-bold text-sm">About</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              project description maybe
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-sm">Legal</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              space here
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-sm">Community</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              GitHub Repository • HackEarth Event
+            </p>
+          </div>
+        </div>
+
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+export default Login;

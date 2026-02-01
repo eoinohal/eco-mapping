@@ -1,0 +1,61 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import UserDashboard from './pages/UserDashboard';  
+const TaskWorkspace = () => <h1 className="text-white p-10">Task Workspace</h1>;
+
+// Protected Route 
+const ProtectedRoute = ({ children, requireAdmin }) => {
+  const { user, token } = useAuth();
+
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+
+  if (requireAdmin && !user?.is_admin) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return children;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-slate-900">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+
+            {/* Admin Route */}
+            <Route path="/admin" element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* User Routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <UserDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/task/:projectId" element={
+              <ProtectedRoute>
+                <TaskWorkspace />
+              </ProtectedRoute>
+            } />
+
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+export default App;

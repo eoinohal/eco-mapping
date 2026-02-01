@@ -57,7 +57,7 @@ Frotend hosted on http://localhost:5173
 ---
 
 ## Project Structure
-
+**UPDATE NEEDED**
 ```
 eco-map/
 ├── docker-compose.yml       

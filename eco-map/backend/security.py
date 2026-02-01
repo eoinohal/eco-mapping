@@ -2,9 +2,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-SECRET_KEY = "b7e2a9c4f1d8e6a0b5c3f9d2e4a7c8b1f0e6d5c9a3b4f2e8d7c6a9b1e0f5c4d3a2" # Should not be public! Calm for now.
+SECRET_KEY =  os.getenv("JWT_SECRET_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
