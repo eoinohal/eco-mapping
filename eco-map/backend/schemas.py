@@ -52,6 +52,17 @@ class ProjectContributionResponse(ProjectResponse):
     user_contribution_count: int
 
 
+class ProjectProgressResponse(BaseModel):
+    project_id: int
+    total_subtasks: int
+    completed_subtasks: int
+    uncompleted_subtasks: int
+    zero_completed_subtasks: int
+    avg_completion_count: Optional[float] = None
+    completion_threshold: int
+    user_completed: int
+
+
 # ======= Subdivision Schemas =======
 class GridRequest(BaseModel):
     rows: int
@@ -77,11 +88,23 @@ class AnnotationCreate(BaseModel):
     geom: str 
     label_type: str
 
+
+class AnnotationBatchItem(BaseModel):
+    geom: str
+    label_type: str
+
+
+class AnnotationBatchCreate(BaseModel):
+    project_id: int
+    subdivision_id: int
+    annotations: List[AnnotationBatchItem]
+
 class AnnotationResponse(BaseModel):
     id: int
     project_id: int
     subdivision_id: int 
     user_id: int
+    label_type: Optional[str] = None
     geometry: Optional[Dict[str, Any]] = None
     created_at: datetime
 

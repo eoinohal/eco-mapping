@@ -11,10 +11,8 @@ import { Button } from '../components/ui/Button';
 import ProjectCard from '../components/ProjectCard'; 
 
 const AdminDashboard = () => {
-  const [activeProjects, setActiveProjects] = useState([]);
-  const [archivedProjects, setArchivedProjects] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -25,31 +23,16 @@ const AdminDashboard = () => {
   const fetchProjects = async () => {
     try {
       const res = await axios.get('http://localhost:8000/projects/');
-
-      const active = res.data.filter(p => p.is_active);
-      const archived = res.data.filter(p => !p.is_active);
-
-      setActiveProjects(active);
-      setArchivedProjects(archived);
+      setProjects(res.data);
     } catch (error) {
       console.error("Error fetching projects", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-
-  const archiveProject = async (projectId) => {
-    try {
-      await axios.patch(
-        `http://localhost:8000/projects/${projectId}/`,
-        { is_active: false }
-      );
-
-      // Refresh list after archiving
-      fetchProjects();
-    } catch (error) {
-      console.error("Error archiving project", error);
-      alert("Failed to archive project");
-    }
+  const handleViewProgress = (project) => {
+    navigate(`/admin/projects/${project.id}/progress`);
   };
 
   return (
@@ -92,17 +75,17 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
             Active Projects 
             <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-              {activeProjects.length}
+              {projects.length}
             </span>
           </h2>
-          {activeProjects.length > 0 ? (
+          {projects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeProjects.map((proj) => (
+              {projects.map((proj) => (
                 <ProjectCard 
                   key={proj.id} 
                   project={proj} 
-                  actionLabel="Close Project"
-                  onAction={() => archiveProject(proj.id)}
+                  actionLabel="View Project Progress"
+                  onAction={() => handleViewProgress(proj)}
                 />
               ))}
             </div>
@@ -112,32 +95,6 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
-
-
-        {/* Projects Grid */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            Archived Projects 
-            <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-              {archivedProjects.length}
-            </span>
-          </h2>
-          {archivedProjects.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {archivedProjects.map((proj) => (
-                <ProjectCard 
-                  key={proj.id} 
-                  project={proj} 
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-100 border-dashed">
-              <p className="text-slate-500 text-sm">No archived projects found.</p>
-            </div>
-          )}
-        </div>
-
 
       </main>
 

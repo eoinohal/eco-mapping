@@ -5,8 +5,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateMissionPage from './pages/CreateMissionPage';
+import ProjectProgressPage from './pages/ProjectProgressPage';
 import UserDashboard from './pages/UserDashboard';  
-const TaskWorkspace = () => <h1 className="text-white p-10">Task Workspace</h1>;
+import TaskWorkspace from './pages/TaskWorkspace';
 
 // Protected Route 
 const ProtectedRoute = ({ children, requireAdmin }) => {
@@ -42,6 +43,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <CreateMissionPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/projects/:projectId/progress" 
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <ProjectProgressPage />
                 </ProtectedRoute>
               } 
             />

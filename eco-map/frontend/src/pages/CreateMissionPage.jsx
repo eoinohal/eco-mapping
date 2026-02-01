@@ -53,8 +53,8 @@ const DrawController = ({ onShapeCreated, onShapeDeleted }) => {
       draw: {
         rectangle: false, circle: false, circlemarker: false, marker: false, polyline: false,
         polygon: {
-          allowIntersection: false, showArea: true,
-          shapeOptions: { color: '#aa0e0e', weight: 3, fillOpacity: 0.2 }
+          allowIntersection: false, showArea: false,
+          shapeOptions: { color: '#82b0ce', weight: 3, fillOpacity: 0.2 }
         }
       }
     });
@@ -152,7 +152,7 @@ const GridPreviewLayer = ({ wkt, rows, cols }) => {
   return (
     <>
       {polygonPositions && (
-        <Polygon positions={polygonPositions} pathOptions={{ color: '#cb1a1a', fillOpacity: 0.1, weight: 3 }} />
+        <Polygon positions={polygonPositions} pathOptions={{ color: '#82b0ce', fillOpacity: 0.1, weight: 3 }} />
       )}
       
       {filteredCells.map((bounds, idx) => (
@@ -175,9 +175,10 @@ const CreateMissionPage = () => {
   
   // Form Data
   const [formData, setFormData] = useState({
-    name: '', description: '', nasa_layer_id: 'MODIS_Terra_CorrectedReflectance_TrueColor',
-    date_target: new Date().toISOString().split('T')[0], boundary_geom: '', 
+    name: '', description: '', boundary_geom: '', 
   });
+
+  const defaultNasaLayerId = 'MODIS_Terra_CorrectedReflectance_TrueColor';
 
   // New Grid State
   const [gridConfig, setGridConfig] = useState({ rows: 5, cols: 5 });
@@ -220,7 +221,8 @@ const CreateMissionPage = () => {
       // Create Project
       const projectRes = await axios.post('http://localhost:8000/projects/', {
         ...formData,
-        date_target: new Date(formData.date_target).toISOString(),
+        nasa_layer_id: defaultNasaLayerId,
+        date_target: new Date().toISOString(),
       }, config);
       
       const projectId = projectRes.data.id;
@@ -265,7 +267,7 @@ const CreateMissionPage = () => {
           
           <div className="h-1 w-full bg-slate-100 flex-shrink-0">
             <div 
-              className="h-full bg-blue-600 transition-all duration-500 ease-in-out" 
+              className="h-full bg-[#82b0ce] transition-all duration-500 ease-in-out" 
               style={{ width: `${(step / (mode === 'EXPLORE' ? 4 : 3)) * 100}%` }}
             />
           </div>
@@ -283,19 +285,6 @@ const CreateMissionPage = () => {
                    <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1">Briefing / Description</label>
                       <textarea name="description" className="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="Describe the goal..." onChange={handleInputChange} />
-                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                   <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">Satellite Layer</label>
-                      <select name="nasa_layer_id" className="w-full border border-slate-300 p-3 rounded-lg bg-white" onChange={handleInputChange}>
-                        <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra (Standard)</option>
-                        <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS SNPP (High Res)</option>
-                      </select>
-                   </div>
-                   <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">Target Date</label>
-                      <input type="date" name="date_target" className="w-full border border-slate-300 p-3 rounded-lg" value={formData.date_target} onChange={handleInputChange} />
                    </div>
                 </div>
                 <div className="flex justify-end pt-6">

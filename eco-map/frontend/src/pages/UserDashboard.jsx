@@ -26,13 +26,11 @@ const UserDashboard = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        // My Projects
         const myProjRes = await axios.get('http://localhost:8000/users/me/projects', config);
-        setMyProjects(myProjRes.data);
+        setMyProjects(myProjRes.data || []);
 
-        // All Available Projects
         const allProjRes = await axios.get('http://localhost:8000/projects/', config);
-        setAllProjects(allProjRes.data);
+        setAllProjects(allProjRes.data || []);
 
       } catch (error) {
         console.error("Failed to load dashboard data", error);
@@ -93,10 +91,10 @@ const UserDashboard = () => {
             </span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent -mx-6 px-6">
             {myActiveProjects.length > 0 ? (
               myActiveProjects.map((proj) => (
-                <div key={proj.id} className="relative group">
+                <div key={proj.id} className="min-w-[300px] md:min-w-[350px] snap-center relative group">
                   {/* Badge for contributions */}
                   <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold shadow-sm border border-slate-200 text-emerald-600">
                     {proj.user_contribution_count} contribs
@@ -109,7 +107,7 @@ const UserDashboard = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+              <div className="w-full text-center py-12 text-slate-400 text-sm">
                 <p className="text-slate-500 text-sm">You haven't contributed to any active missions yet.</p>
               </div>
             )}
@@ -193,7 +191,7 @@ const UserDashboard = () => {
                 ))
               ) : (
                 <div className="text-center py-8 text-slate-400 text-sm">
-                  No completed mission history found.
+                  Scoring system not implemented yet.
                 </div>
               )}
             </div>

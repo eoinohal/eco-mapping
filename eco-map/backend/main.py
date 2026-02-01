@@ -143,6 +143,9 @@ def read_users_me(current_user: models.User = Depends(get_current_user)):
 @app.get("/projects/", response_model=List[schemas.ProjectResponse])
 def read_projects(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     projects = db.query(models.Project).filter(models.Project.is_active == True).offset(skip).limit(limit).all()
+    for project in projects:
+        if project.boundary_geom is not None:
+            project.geometry = mapping(to_shape(project.boundary_geom))
     return projects
 
 
@@ -180,6 +183,80 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     
     return project
 
+
+@app.get("/projects/{project_id}/tasks/next", response_model=schemas.SubdivisionResponse)
+def get_next_task(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    completed_subq = db.query(models.Annotation.subdivision_id).filter(
+        models.Annotation.project_id == project_id,
+        models.Annotation.user_id == current_user.id
+    ).subquery()
+
+    task = db.query(models.Subdivision).filter(
+        models.Subdivision.project_id == project_id,
+        ~models.Subdivision.id.in_(completed_subq)
+    ).order_by(func.random()).first()
+
+    if task is None:
+        raise HTTPException(status_code=404, detail="No available tasks")
+
+    if task.geom is not None:
+        task.geometry = mapping(to_shape(task.geom))
+
+    return task
+
+
+@app.get("/projects/{project_id}/progress", response_model=schemas.ProjectProgressResponse)
+def get_project_progress(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    completion_threshold = 10
+    total_subtasks = db.query(models.Subdivision).filter(models.Subdivision.project_id == project_id).count()
+    completed_subtasks = db.query(models.Subdivision).filter(
+        models.Subdivision.project_id == project_id,
+        models.Subdivision.completion_count >= completion_threshold
+    ).count()
+    uncompleted_subtasks = db.query(models.Subdivision).filter(
+        models.Subdivision.project_id == project_id,
+        models.Subdivision.completion_count < completion_threshold
+    ).count()
+    zero_completed_subtasks = db.query(models.Subdivision).filter(
+        models.Subdivision.project_id == project_id,
+        models.Subdivision.completion_count == 0
+    ).count()
+    avg_completion_count = db.query(func.avg(models.Subdivision.completion_count)).filter(
+        models.Subdivision.project_id == project_id
+    ).scalar()
+
+    user_completed = db.query(func.count(func.distinct(models.Annotation.subdivision_id))).filter(
+        models.Annotation.project_id == project_id,
+        models.Annotation.user_id == current_user.id
+    ).scalar()
+
+    return schemas.ProjectProgressResponse(
+        project_id=project_id,
+        total_subtasks=total_subtasks,
+        completed_subtasks=completed_subtasks,
+        uncompleted_subtasks=uncompleted_subtasks,
+        zero_completed_subtasks=zero_completed_subtasks,
+        avg_completion_count=avg_completion_count,
+        completion_threshold=completion_threshold,
+        user_completed=user_completed
+    )
+
 @app.get("/users/me/projects", response_model=List[schemas.ProjectContributionResponse])
 def read_my_projects(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Join Projects and Annotations, filter by user_id, group by Project
@@ -202,6 +279,8 @@ def read_my_projects(current_user: models.User = Depends(get_current_user), db: 
             is_active=project.is_active,
             user_contribution_count=count
         )
+        if project.boundary_geom is not None:
+            proj_data.geometry = mapping(to_shape(project.boundary_geom))
         response.append(proj_data)
         
     return response
@@ -251,6 +330,21 @@ def create_annotation(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    subdivision = db.query(models.Subdivision).filter(
+        models.Subdivision.id == annotation.subdivision_id,
+        models.Subdivision.project_id == annotation.project_id
+    ).first()
+    if not subdivision:
+        raise HTTPException(status_code=404, detail="Subdivision not found")
+
+    existing = db.query(models.Annotation).filter(
+        models.Annotation.project_id == annotation.project_id,
+        models.Annotation.subdivision_id == annotation.subdivision_id,
+        models.Annotation.user_id == current_user.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Task already completed by this user")
+
     # GEOSPATIAL CHECK 
     point_wkt = WKTElement(annotation.geom, srid=4326)
     is_inside = db.scalar(func.ST_Contains(project.boundary_geom, point_wkt))
@@ -269,7 +363,9 @@ def create_annotation(
             geom=point_wkt,
             user_id=current_user.id 
         )
-        
+
+    subdivision.completion_count += 1
+
     db.add(db_annotation)
     db.commit()
     db.refresh(db_annotation)
@@ -279,6 +375,81 @@ def create_annotation(
         db_annotation.geometry = mapping(to_shape(db_annotation.geom))
         
     return db_annotation
+
+
+@app.post("/annotations/batch")
+def create_annotation_batch(
+    batch: schemas.AnnotationBatchCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    project = db.query(models.Project).filter(models.Project.id == batch.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    subdivision = db.query(models.Subdivision).filter(
+        models.Subdivision.id == batch.subdivision_id,
+        models.Subdivision.project_id == batch.project_id
+    ).first()
+    if not subdivision:
+        raise HTTPException(status_code=404, detail="Subdivision not found")
+
+    existing = db.query(models.Annotation).filter(
+        models.Annotation.project_id == batch.project_id,
+        models.Annotation.subdivision_id == batch.subdivision_id,
+        models.Annotation.user_id == current_user.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Task already completed by this user")
+
+    if not batch.annotations:
+        raise HTTPException(status_code=400, detail="No annotations provided")
+
+    created = 0
+    for item in batch.annotations:
+        point_wkt = WKTElement(item.geom, srid=4326)
+        db_annotation = models.Annotation(
+            project_id=batch.project_id,
+            subdivision_id=batch.subdivision_id,
+            label_type=item.label_type,
+            geom=point_wkt,
+            user_id=current_user.id
+        )
+        db.add(db_annotation)
+        created += 1
+
+    subdivision.completion_count += 1
+    db.commit()
+
+    return {"status": "success", "created": created}
+
+
+@app.get("/projects/{project_id}/annotations", response_model=List[schemas.AnnotationResponse])
+def get_project_annotations(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin)
+):
+    """
+    Fetch all annotations for a project (admin only).
+    Returns annotations with geometry serialized to GeoJSON.
+    """
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    annotations = db.query(models.Annotation).filter(
+        models.Annotation.project_id == project_id
+    ).all()
+
+    # Convert geometry to GeoJSON for each annotation
+    result = []
+    for annotation in annotations:
+        if annotation.geom is not None:
+            annotation.geometry = mapping(to_shape(annotation.geom))
+        result.append(annotation)
+
+    return result
 
 # ----------------------------------------------------------------
 # SUBDIVISION ENDPOINTS
@@ -346,6 +517,36 @@ def generate_grid(
 
     return response_data
 
+
+@app.get("/projects/{project_id}/subdivisions", response_model=List[schemas.SubdivisionResponse])
+def get_subdivisions(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Fetch all subdivisions (grid squares) for a project.
+    """
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    subdivisions = db.query(models.Subdivision).filter(
+        models.Subdivision.project_id == project_id
+    ).all()
+
+    response_data = []
+    for sub in subdivisions:
+        sub_resp = schemas.SubdivisionResponse(
+            id=sub.id,
+            project_id=sub.project_id,
+            completion_count=sub.completion_count
+        )
+        if sub.geom is not None:
+            sub_resp.geometry = mapping(to_shape(sub.geom))
+        response_data.append(sub_resp)
+
+    return response_data
 
 # ----------------------------------------------------------------
 # BATCH TASKS ENDPOINTS
