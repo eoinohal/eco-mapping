@@ -37,7 +37,8 @@ class ProjectCreate(ProjectBase):
     date_target: datetime
 
 class ProjectUpdate(BaseModel):
-    is_active: bool
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class ProjectResponse(ProjectBase):
     id: int

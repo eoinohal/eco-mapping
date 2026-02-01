@@ -51,12 +51,16 @@ const Login = () => {
         {/* INFO GRID - fill in with info */}
         <div className="grid md:grid-cols-3 gap-8 py-12 border-t border-slate-100">
           <div className="space-y-2">
+            Admin Account:
             <h3 className="font-bold text-sm"></h3>
+            mission_maker, secret123
             <p className="text-xs text-slate-500 leading-relaxed">
             </p>
           </div>
           <div className="space-y-2">
+            Reviewer Account:
             <h3 className="font-bold text-sm"></h3>
+            reviewer, secret123
             <p className="text-xs text-slate-500 leading-relaxed">
             </p>
           </div>

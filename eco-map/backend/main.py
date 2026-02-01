@@ -296,13 +296,18 @@ def update_project_status(
     current_user: models.User = Depends(get_current_admin) 
 ):
     """
-    Update project status (e.g., close a project by setting is_active=False).
+    Update project fields (description, is_active, etc).
     """
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    project.is_active = status_update.is_active
+    # Update fields if provided
+    if status_update.description is not None:
+        project.description = status_update.description
+    if status_update.is_active is not None:
+        project.is_active = status_update.is_active
+    
     db.commit()
     db.refresh(project)
     

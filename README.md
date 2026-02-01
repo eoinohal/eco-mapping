@@ -2,56 +2,90 @@
 # eco-mapping
 
 ## Description
-Hack-Earth submission
 
-eco-mapping is a gamified web platform to crowdsources human reviewed satellite data for collecting geospatial datasets for environmental monitoring missions. 
+A gamified web platform for crowdsourcing human reviewed satellite imagery to collect geospatial datasets for environmental monitoring missions.
 
-**Note:** No security setup so far
 
 ---
+
 
 ## How to Run
 
 ### 1. Clone the repository
 
 ```sh
-git clone https://github.com/eoinohal/eco-map
-cd eco-map/eco-map
+git clone https://github.com/eoinohal/eco-mapping
+cd eco-mapping/eco-map
 ```
 
 
 ### 2. Set up Environment Variables
 
 ```sh
-# From the root project folder
 cd backend
 cp .env.example .env
-# Open .env in your editor and set secrets
 ```
-- NASA API key = https://api.nasa.gov/
-- Any others ...
+
+Edit `.env`:
+- `SECRET_KEY` - Replace with random string
 
 
 
-### 3. Start the Application (Docker)
+### 3. Start Backend
 
 ```sh
-# From the root project 
-# Ensure docker is running
+cd backend
 docker compose up --build
 ```
-Backend hosted on http://127.0.0.1:8000
-API Documentation: http://localhost:8000/docs
 
+- Backend: http://localhost:8000
+- Docs: http://localhost:8000/docs
 
-### 5. Run Frontend 
+### 4. Start Frontend
 
 ```sh
-# From the root project folder
 cd frontend
 npm install
 npm run dev
 ```
-Frotend hosted on http://localhost:5173
+
+- Frontend: http://localhost:5173
+
+---
+
+## Project Structure
+
+```
+eco-map/
+├── backend/            # FastAPI server
+│   ├── main.py         # API endpoints
+│   ├── models.py       # SQLAlchemy ORM
+│   ├── schemas.py      # Pydantic validators
+│   └── database.py     # DB connection
+├── frontend/        
+│   ├── src/
+│   │   ├── pages/      # User flows
+│   │   ├── components/
+│   │   └── utils/
+│   └── package.json
+└── README.md
+```
+
+---
+
+## Tech Stack
+
+**Backend:**
+- FastAPI (Python)
+- SQLAlchemy ORM
+- PostgreSQL + PostGIS (geospatial)
+- JWT authentication
+
+**Frontend:**
+- React 18
+- React Router
+- Leaflet (mapping)
+- Tailwind CSS
+- Vite
 
 ---
