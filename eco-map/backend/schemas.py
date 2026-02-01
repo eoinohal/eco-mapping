@@ -2,6 +2,15 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Any, Dict 
 
+# ======== Token Schemas =======
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+    
 # ======== User Schemas =======
 class UserCreate(BaseModel):
     username: str
@@ -35,21 +44,38 @@ class ProjectResponse(ProjectBase):
         from_attributes = True
 
 
-# ======= Annotation Schemas =======
-class AnnotationBase(BaseModel):
-    label_type: str  
+# ======= Subdivision Schemas =======
+class GridRequest(BaseModel):
+    rows: int
+    cols: int
 
-class AnnotationCreate(AnnotationBase):
-    project_id: int
-    geom: str 
-
-class AnnotationResponse(AnnotationBase):
+class SubdivisionResponse(BaseModel):
     id: int
     project_id: int
-    created_at: datetime
-    geometry: Optional[Dict[str, Any]] = None  
+    completion_count: int
+    geometry: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True
 
-        
+
+# ======= Annotation Schemas =======
+class AnnotationBase(BaseModel):
+    label_type: str  
+
+class AnnotationCreate(BaseModel):
+    project_id: int
+    subdivision_id: int
+    geom: str 
+    label_type: str
+
+class AnnotationResponse(BaseModel):
+    id: int
+    project_id: int
+    subdivision_id: int 
+    user_id: int
+    geometry: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

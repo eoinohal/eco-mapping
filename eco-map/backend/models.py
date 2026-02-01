@@ -26,31 +26,42 @@ class Project(Base):
     Project model, individual mapping project.
     """
     __tablename__ = "projects"
-    # Project details
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String)
-    # NASA API Metadata - map data here
     nasa_layer_id = Column(String) 
     date_target = Column(DateTime) 
     boundary_geom = Column(Geometry('POLYGON', srid=4326))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    # Annonations related to this project - cascade delete ON 
+    is_active = Column(Boolean, default=True) 
+    required_annotations = Column(Integer, default=100) 
     annotations = relationship("Annotation", back_populates="project", cascade="all, delete-orphan")
+    subdivisions = relationship("Subdivision", back_populates="project", cascade="all, delete-orphan")
 
-
+class Subdivision(Base):
+    """
+    Subdivisions of a project area for annotation.
+    """
+    __tablename__ = "subdivisions"
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    geom = Column(Geometry('POLYGON', srid=4326))
+    completion_count = Column(Integer, default=0)
+    project = relationship("Project", back_populates="subdivisions")
+    annotations = relationship("Annotation", back_populates="subdivision")
 class Annotation(Base):
-    """
-    The raw data points/shapes drawn by users.
-    """
+    '''
+    Annotations made by users on project subdivisions.
+    '''
     __tablename__ = "annotations"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
     project_id = Column(Integer, ForeignKey("projects.id"))
-    # points, lines, polygons 
-    geom = Column(Geometry('GEOMETRY', srid=4326))
-    # To handle 'modes'
+    user_id = Column(Integer, ForeignKey("users.id"))
+    subdivision_id = Column(Integer, ForeignKey("subdivisions.id")) # <--- NEW FIELD
     label_type = Column(String)
+    quality_score = Column(Integer, default=0)
+    geom = Column(Geometry('POINT', srid=4326))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    user = relationship("User", back_populates="annotations")
     project = relationship("Project", back_populates="annotations")
+    user = relationship("User", back_populates="annotations")
+    subdivision = relationship("Subdivision", back_populates="annotations") # <--- NEW RELATIONSHIP", back_populates="annotations")
