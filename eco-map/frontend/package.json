@@ -10,12 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@turf/turf": "^7.3.3",
     "axios": "^1.13.4",
     "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
     "lucide-react": "^0.563.0",
     "maplibre-gl": "^5.17.0",
+    "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-leaflet": "^5.0.0",
+    "react-leaflet-draw": "^0.21.0",
     "react-map-gl": "^8.1.0",
     "react-router-dom": "^7.13.0",
     "tailwind-merge": "^3.4.0"

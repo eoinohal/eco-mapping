@@ -11,7 +11,10 @@ import { Button } from '../components/ui/Button';
 import ProjectCard from '../components/ProjectCard'; 
 
 const AdminDashboard = () => {
+  const [activeProjects, setActiveProjects] = useState([]);
+  const [archivedProjects, setArchivedProjects] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -22,29 +25,30 @@ const AdminDashboard = () => {
   const fetchProjects = async () => {
     try {
       const res = await axios.get('http://localhost:8000/projects/');
-      setProjects(res.data);
+
+      const active = res.data.filter(p => p.is_active);
+      const archived = res.data.filter(p => !p.is_active);
+
+      setActiveProjects(active);
+      setArchivedProjects(archived);
     } catch (error) {
       console.error("Error fetching projects", error);
     }
   };
 
-  const handleCreateDemo = async () => {
-    const name = window.prompt("Enter Project Name:");
-    if (!name) return;
 
+  const archiveProject = async (projectId) => {
     try {
-      // Creates a default project in the Atlantic ocean
-      await axios.post('http://localhost:8000/projects/', {
-        name: name,
-        description: "Admin created project via Dashboard",
-        nasa_layer_id: "MODIS_Terra_CorrectedReflectance_TrueColor",
-        date_target: new Date().toISOString(),
-        boundary_geom: "POLYGON((-63 -9, -62 -9, -62 -8, -63 -8, -63 -9))"
-      });
-      alert("Project Created! You may need to add tasks/grids via Swagger for now.");
-      fetchProjects(); // Refresh list
+      await axios.patch(
+        `http://localhost:8000/projects/${projectId}/`,
+        { is_active: false }
+      );
+
+      // Refresh list after archiving
+      fetchProjects();
     } catch (error) {
-      alert("Failed to create project");
+      console.error("Error archiving project", error);
+      alert("Failed to archive project");
     }
   };
 
@@ -77,10 +81,7 @@ const AdminDashboard = () => {
 
         {/* Actions Bar */}
         <div className="mb-12">
-          <Button 
-            onClick={handleCreateDemo}
-            className="h-11 shadow-md hover:shadow-lg transition-all"
-          >
+          <Button onClick={() => navigate('/admin/create-mission')}>
             <PlusCircle className="w-4 h-4 mr-2" />
             Create New Mission
           </Button>
@@ -91,19 +92,17 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
             Active Projects 
             <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-              {projects.length}
+              {activeProjects.length}
             </span>
           </h2>
-          
-          {projects.length > 0 ? (
+          {activeProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((proj) => (
+              {activeProjects.map((proj) => (
                 <ProjectCard 
                   key={proj.id} 
                   project={proj} 
-                  actionLabel="Manage"
-                  onAction={() => alert(`Management for Project ${proj.id} coming soon!`)}
-                  secondaryAction={() => navigate(`/task/${proj.id}`)} 
+                  actionLabel="Close Project"
+                  onAction={() => archiveProject(proj.id)}
                 />
               ))}
             </div>
@@ -113,6 +112,32 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+
+
+        {/* Projects Grid */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            Archived Projects 
+            <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+              {archivedProjects.length}
+            </span>
+          </h2>
+          {archivedProjects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {archivedProjects.map((proj) => (
+                <ProjectCard 
+                  key={proj.id} 
+                  project={proj} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-100 border-dashed">
+              <p className="text-slate-500 text-sm">No archived projects found.</p>
+            </div>
+          )}
+        </div>
+
 
       </main>
 

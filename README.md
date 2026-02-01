@@ -36,7 +36,8 @@ cp .env.example .env
 ### 3. Start the Application (Docker)
 
 ```sh
-# From the root project folder
+# From the root project 
+# Ensure docker is running
 docker compose up --build
 ```
 Backend hosted on http://127.0.0.1:8000
@@ -52,30 +53,5 @@ npm install
 npm run dev
 ```
 Frotend hosted on http://localhost:5173
-
-
----
-
-## Project Structure
-**UPDATE NEEDED**
-```
-eco-map/
-├── docker-compose.yml       
-├── backend/
-│   ├── Dockerfile         
-│   ├── main.py              # Backend Entrypoint
-│   ├── database.py          
-│   ├── models.py            # Database Models
-│   ├── schemas.py           # Pydantic Validation Models
-│   ├── requirements.txt     
-│   └── .env                 # API Keys and Database URL
-├── frontend/
-│   ├── App.tsx              # React app
-│   ├── main.tsx             # React entrypoint
-│   ├── package.json         
-│   └── ...
-└── README.md               
-```
-
 
 ---

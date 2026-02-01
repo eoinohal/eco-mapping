@@ -50,24 +50,21 @@ const Login = () => {
         <MissionMakerSection onSignUpClick={handleScrollToSignUp} />
 
 
-        {/* INFO GRID */}
+        {/* INFO GRID - fill in with info */}
         <div className="grid md:grid-cols-3 gap-8 py-12 border-t border-slate-100">
           <div className="space-y-2">
-            <h3 className="font-bold text-sm">About</h3>
+            <h3 className="font-bold text-sm"></h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              project description maybe
             </p>
           </div>
           <div className="space-y-2">
-            <h3 className="font-bold text-sm">Legal</h3>
+            <h3 className="font-bold text-sm"></h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              space here
             </p>
           </div>
           <div className="space-y-2">
-            <h3 className="font-bold text-sm">Community</h3>
+            <h3 className="font-bold text-sm"></h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              GitHub Repository • HackEarth Event
             </p>
           </div>
         </div>

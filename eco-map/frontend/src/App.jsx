@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import CreateMissionPage from './pages/CreateMissionPage';
 import UserDashboard from './pages/UserDashboard';  
 const TaskWorkspace = () => <h1 className="text-white p-10">Task Workspace</h1>;
 
@@ -36,6 +37,14 @@ function App() {
                 <AdminDashboard />
               </ProtectedRoute>
             } />
+            <Route 
+              path="/admin/create-mission" 
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <CreateMissionPage />
+                </ProtectedRoute>
+              } 
+            />
 
             {/* User Routes */}
             <Route path="/dashboard" element={
