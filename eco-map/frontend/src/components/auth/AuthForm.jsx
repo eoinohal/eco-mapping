@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
 export const AuthForm = ({ isRegisterMode, toggleMode }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false); 
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Reset admin flag 
-  useEffect(() => {
-    if (!isRegisterMode) setIsAdmin(false);
-  }, [isRegisterMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,22 +19,23 @@ export const AuthForm = ({ isRegisterMode, toggleMode }) => {
     try {
       if (isRegisterMode) {
         // --- REGISTER LOGIC ---
+        // All new users sign up as reviewers (is_admin: false)
         const response = await fetch('http://localhost:8000/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: username,
-            password: password,
-            is_admin: isAdmin
+            password: password
+            // is_admin defaults to false on backend
           })
         });
 
         if (!response.ok) throw new Error('Registration failed');
         
         // Auto-login after registration 
-        alert('Account created! Logging you in...');
+        alert('Account created! Welcome to Eco-Mapping!');
         await login(username, password); 
-        navigate(isAdmin ? '/admin' : '/dashboard');
+        navigate('/dashboard'); // All new users go to reviewer dashboard
         
       } else {
         // --- LOGIN LOGIC ---
@@ -63,7 +58,7 @@ export const AuthForm = ({ isRegisterMode, toggleMode }) => {
         </h2>
         <p className="text-sm text-slate-500 mt-2">
           {isRegisterMode 
-            ? 'Enter your details below to create your account' 
+            ? 'Sign up as a Reviewer to start mapping' 
             : 'Enter your credentials to access your account'}
         </p>
       </div>
@@ -89,24 +84,6 @@ export const AuthForm = ({ isRegisterMode, toggleMode }) => {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-
-        {/* Custom Checkbox for is_admin */}
-        {isRegisterMode && (
-          <div className="flex items-center space-x-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setIsAdmin(!isAdmin)}
-              className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${
-                isAdmin ? 'bg-slate-900 border-slate-900 text-white' : 'border-slate-300 bg-white'
-              }`}
-            >
-              {isAdmin && <Check className="w-3 h-3" />}
-            </button>
-            <label onClick={() => setIsAdmin(!isAdmin)} className="text-sm font-medium leading-none cursor-pointer text-slate-700">
-              Sign up as Mission Maker (Admin)
-            </label>
-          </div>
-        )}
 
         <Button type="submit" className="w-full mt-2">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isRegisterMode ? "Create Account" : "Log In")}

@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// Get API URL from environment or default to localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -19,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Verify token
-          const response = await axios.get('http://localhost:8000/users/me');
+          const response = await axios.get(`${API_URL}/users/me`);
           setUser(response.data);
         } catch (error) {
           console.error("Session expired");
@@ -37,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     formData.append('username', username);
     formData.append('password', password);
 
-    const response = await axios.post('http://localhost:8000/token', formData, {
+    const response = await axios.post(`${API_URL}/token`, formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
@@ -49,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
     // Get User Details
-    const userResponse = await axios.get('http://localhost:8000/users/me');
+    const userResponse = await axios.get(`${API_URL}/users/me`);
     setUser(userResponse.data);
     
     return userResponse.data;

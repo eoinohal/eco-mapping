@@ -19,10 +19,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EcoMap Backend")
 
-origins = [
-    "http://localhost:5173", 
-    "http://localhost:3000",
-]
+# CORS Configuration - supports both local dev and production
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
@@ -110,7 +114,8 @@ def read_root():
 @app.post("/users/", response_model=schemas.UserResponse)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
-    Create Admin or Reviewer.
+    Create a new Reviewer account.
+    All new users are reviewers. Admin accounts must be created manually in the database.
     """
     # Check for duplicate
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
@@ -120,10 +125,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # Hash the password
     hashed_pwd = security.get_password_hash(user.password)
     
+    # All new users are reviewers (is_admin always False)
     new_user = models.User(
         username=user.username, 
         hashed_password=hashed_pwd, 
-        is_admin=user.is_admin
+        is_admin=False  # Reviewers only
     )
     
     db.add(new_user)

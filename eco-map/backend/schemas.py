@@ -15,7 +15,7 @@ class TokenData(BaseModel):
 class UserCreate(BaseModel):
     username: str
     password: str
-    is_admin: bool = False
+    # All new users are reviewers (is_admin always False)
 
 class UserResponse(BaseModel):
     id: int
