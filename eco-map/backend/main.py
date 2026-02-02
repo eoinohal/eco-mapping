@@ -19,10 +19,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EcoMap Backend")
 
-origins = [
-    "http://localhost:5173", 
-    "http://localhost:3000",
-]
+# CORS Configuration - supports both local dev and production
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
