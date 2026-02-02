@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RotateCw } from 'lucide-react';
 import { MapContainer, TileLayer, Polygon, Circle, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
+import HeatmapLayer from '../components/HeatmapLayer';
 
 const MAX_SCALE = 50;
 
@@ -27,38 +28,46 @@ const ProjectProgressPage = () => {
   const [subdivisions, setSubdivisions] = useState([]);
   const [annotations, setAnnotations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [displayMode, setDisplayMode] = useState('annotations');
+  const [heatThreshold, setHeatThreshold] = useState(0);
+
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      // Fetch project data
+      const projRes = await axios.get(`http://localhost:8000/projects/${projectId}`, config);
+      setProject(projRes.data);
+
+      // Fetch all subdivisions (grid)
+      const subdivRes = await axios.get(
+        `http://localhost:8000/projects/${projectId}/subdivisions`,
+        config
+      );
+      setSubdivisions(subdivRes.data);
+
+      // Fetch all annotations
+      const annotRes = await axios.get(
+        `http://localhost:8000/projects/${projectId}/annotations`,
+        config
+      );
+      setAnnotations(annotRes.data || []);
+    } catch (error) {
+      console.error('Error fetching project progress:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-
-        // Fetch project data
-        const projRes = await axios.get(`http://localhost:8000/projects/${projectId}`, config);
-        setProject(projRes.data);
-
-        // Fetch all subdivisions (grid)
-        const subdivRes = await axios.get(
-          `http://localhost:8000/projects/${projectId}/subdivisions`,
-          config
-        );
-        setSubdivisions(subdivRes.data);
-
-        // Fetch all annotations
-        const annotRes = await axios.get(
-          `http://localhost:8000/projects/${projectId}/annotations`,
-          config
-        );
-        setAnnotations(annotRes.data || []);
-      } catch (error) {
-        console.error('Error fetching project progress:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    fetchData();
   }, [projectId]);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await fetchData();
+  };
 
   const polygonCoords = project?.geometry?.coordinates?.[0]?.map(([lng, lat]) => [lat, lng]);
   const subdivisionPolygons = subdivisions.map((sub) => {
@@ -116,12 +125,51 @@ const ProjectProgressPage = () => {
             <h1 className="text-2xl font-semibold text-slate-900">{project?.name}</h1>
             <p className="text-sm text-slate-500">Project Progress & Annotation Review</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin')}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RotateCw className="w-4 h-4" /> Refresh
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/admin')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
+            </Button>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="mb-6 flex items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <select 
+            value={displayMode} 
+            onChange={(e) => setDisplayMode(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-sky-500 outline-none"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
-          </Button>
+            <option value="annotations">Annotations View</option>
+            <option value="heatmap">Heatmap View</option>
+          </select>
+
+          {displayMode === 'heatmap' && (
+            <div className="flex items-center gap-3 ml-auto">
+              <label className="text-sm font-medium text-slate-700">Heat Threshold:</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={heatThreshold * 100}
+                onChange={(e) => setHeatThreshold(parseFloat(e.target.value) / 100)}
+                className="w-32 h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-500"
+              />
+              <span className="text-sm font-mono bg-white px-2 py-1 rounded border border-slate-200">
+                {Math.round(heatThreshold * 100)}%
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -139,26 +187,42 @@ const ProjectProgressPage = () => {
                   <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Esri" />
 
                   {/* Project Boundary */}
+
                   <Polygon
                     positions={polygonCoords}
                     pathOptions={{ color: '#82b0ce', weight: 3, fillOpacity: 0 }}
                   />
 
-                  {/* Annotations */}
-                  {annotations.map((ann) => {
-                    const coords = ann.geometry?.coordinates;
-                    if (!coords) return null;
-                    const scale = parseInt(ann.label_type?.split(':')[1] || 10, 10);
-                    if (!Number.isFinite(scale) || scale <= 0) return null;
-                    return (
-                      <Circle
-                        key={ann.id}
-                        center={[coords[1], coords[0]]}
-                        radius={scale * scaleMultiplier}
-                        pathOptions={{ color: '#38bdf8', fillOpacity: 0.6, weight: 1 }}
-                      />
-                    );
-                  })}
+                  {/* Annotations or Heatmap */}
+                  {displayMode === 'annotations' && (
+                    <>
+                      {annotations.map((ann) => {
+                        const coords = ann.geometry?.coordinates;
+                        if (!coords) return null;
+                        const scale = parseInt(ann.label_type?.split(':')[1] || 10, 10);
+                        if (!Number.isFinite(scale) || scale <= 0) return null;
+                        return (
+                          <Circle
+                            key={ann.id}
+                            center={[coords[1], coords[0]]}
+                            radius={scale * scaleMultiplier}
+                            pathOptions={{ color: '#38bdf8', fillOpacity: 0.6, weight: 1 }}
+                          />
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {displayMode === 'heatmap' && annotations.length > 0 && (
+                    <HeatmapLayer
+                      annotations={annotations}
+                      maxMagnitude={Math.max(...annotations.map(a => {
+                        const magnitude = parseInt(a.label_type?.split(':')[1] || 10, 10);
+                        return Number.isFinite(magnitude) && magnitude > 0 ? magnitude : 0;
+                      }))}
+                      threshold={heatThreshold}
+                    />
+                  )}
 
                   <FitBounds polygon={polygonCoords} />
                 </MapContainer>

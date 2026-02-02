@@ -10,7 +10,7 @@ import 'leaflet/dist/leaflet.css';
 
 const MIN_SCALE = 5;
 const MAX_SCALE = 50;
-const MAX_ANNOTATIONS = 20;
+const MAX_ANNOTATIONS = 5;
 
 const isPointInPoly = (point, vs) => {
   const x = point[0], y = point[1];
